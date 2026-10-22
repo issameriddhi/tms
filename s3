@@ -1,0 +1,62 @@
+#Question 1: SARIMA and Time Series Regression
+library(forecast)
+data(AirPassengers)
+
+x <- log(AirPassengers)
+monthplot(x)
+
+s <- Arima(x, order=c(0,1,1),
+           seasonal=c(0,1,1))
+print(s)
+
+t <- 1:length(x)
+month <- factor(cycle(x))
+r <- lm(as.numeric(x) ~ t + month)
+print(summary(r))
+
+sr <- residuals(s)
+rr <- residuals(r)
+
+result <- data.frame(
+  Model=c("SARIMA","Regression"),
+  R2=c(1-sum(sr^2,na.rm=TRUE)/
+         sum((x-mean(x))^2),
+       summary(r)$r.squared),
+  RMSE=c(sqrt(mean(sr^2,na.rm=TRUE)),
+         sqrt(mean(rr^2)))
+)
+
+print(result)
+
+
+
+#Question 2: MLE, CSS and ARIMA Grid Search
+data(AirPassengers)
+x <- log(AirPassengers)
+
+ml <- arima(x, order=c(1,1,1), method="ML")
+css <- arima(x, order=c(1,1,1), method="CSS")
+
+print(data.frame(ML=ml$coef, CSS=css$coef))
+
+results <- data.frame()
+
+for(p in 0:3){
+  for(q in 0:3){
+    m <- try(arima(x, order=c(p,1,q),
+                   method="ML"), silent=TRUE)
+
+    if(!inherits(m,"try-error") && is.finite(AIC(m))){
+      results <- rbind(results,
+                       data.frame(p=p,q=q,AIC=AIC(m)))
+    }
+  }
+}
+
+print(results)
+best <- results[which.min(results$AIC),]
+print(best)
+
+
+
+
