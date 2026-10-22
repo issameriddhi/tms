@@ -1,0 +1,72 @@
+#Question 1: FPE, AIC, BIC and Residual Analysis
+data(AirPassengers)
+x <- log(AirPassengers)
+
+orders <- list(c(1,1,1),c(2,1,1),c(0,1,2))
+models <- lapply(orders, function(o) arima(x,order=o))
+
+fpe <- function(m){
+  n <- length(x)-1
+  k <- length(m$coef)+1
+  m$sigma2*(n+k)/(n-k)
+}
+
+result <- data.frame(
+  Model=c("111","211","012"),
+  LogLik=sapply(models,logLik),
+  AIC=sapply(models,AIC),
+  BIC=sapply(models,BIC),
+  FPE=sapply(models,fpe)
+)
+
+print(result)
+
+best <- models[[which.min(result$AIC)]]
+res <- na.omit(residuals(best))
+
+par(mfrow=c(1,3))
+acf(res)
+hist(res,probability=TRUE)
+lines(density(res),col=2)
+qqnorm(res)
+qqline(res,col=2)
+par(mfrow=c(1,1))
+
+
+#Question 2: Ljung-Box, ARCH and GARCH(1,1)
+library(forecast)
+library(FinTS)
+library(rugarch)
+
+data(AirPassengers)
+x <- log(AirPassengers)
+
+m <- auto.arima(x, seasonal=TRUE)
+res <- na.omit(residuals(m))
+
+print(Box.test(res,lag=24,type="Ljung-Box",
+               fitdf=sum(m$arma[1:4])))
+
+print(Box.test(res^2,lag=24,type="Ljung-Box"))
+
+a <- ArchTest(res,lags=12)
+print(a)
+
+if(a$p.value < 0.05){
+
+  spec <- ugarchspec(
+    variance.model=list(garchOrder=c(1,1)),
+    mean.model=list(armaOrder=c(0,0),
+                    include.mean=FALSE)
+  )
+
+  g <- ugarchfit(spec,data=as.numeric(res))
+  print(g)
+
+  plot(sigma(g)^2,type="l",
+       main="GARCH Conditional Variance")
+
+} else {
+  print("No significant ARCH effect")
+}
+
