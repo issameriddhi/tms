@@ -1,0 +1,50 @@
+#Question 1: Moving Average, SES, Holt & Holt-Winters
+library(forecast)
+data(AirPassengers)
+x <- AirPassengers
+
+m <- ma(x, order=12, centre=TRUE)
+s <- ses(x)
+h <- holt(x)
+a <- hw(x, seasonal="additive")
+b <- hw(x, seasonal="multiplicative")
+
+print(s$model$par)
+print(h$model$par)
+print(a$model$par)
+print(b$model$par)
+
+plot(x, main="Smoothing Comparison")
+lines(m, col=2, lwd=2)
+lines(fitted(s), col=3)
+lines(fitted(h), col=4)
+lines(fitted(a), col=5)
+lines(fitted(b), col=6)
+
+legend("topleft",
+       c("Original","MA","SES","Holt","HW Add","HW Mul"),
+       col=1:6, lty=1, cex=0.7)
+
+
+
+#Question 2: ACF, PACF, AR(1) and MA(1)
+data(AirPassengers)
+x <- AirPassengers
+
+acf(x)
+pacf(x)
+
+t <- 1:length(x)
+y <- ts(residuals(lm(as.numeric(x) ~ t)),
+        start=start(x), frequency=12)
+
+ar <- arima(y, order=c(1,0,0))
+ma <- arima(y, order=c(0,0,1))
+
+print(ar)
+print(ma)
+
+print(sqrt(diag(ar$var.coef)))
+print(sqrt(diag(ma$var.coef)))
+
+cat("AR Stationary:", abs(ar$coef["ar1"]) < 1)
