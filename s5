@@ -1,0 +1,71 @@
+#Question 1: Holt-Winters and Alpha Comparison
+library(forecast)
+data(AirPassengers)
+
+train <- window(AirPassengers,end=c(1958,12))
+test <- window(AirPassengers,start=c(1959,1))
+
+m <- HoltWinters(train,seasonal="multiplicative")
+f <- forecast(m,h=24)
+
+print(m)
+cat("MAPE:",mean(abs((test-f$mean)/test))*100)
+
+plot(f)
+lines(test,col=2)
+
+result <- data.frame()
+
+plot(test,main="Alpha Comparison")
+
+for(a in seq(0.2,0.8,0.1)){
+  m <- HoltWinters(train,alpha=a,
+                   seasonal="multiplicative")
+  pred <- forecast(m,h=24)$mean
+
+  result <- rbind(result,data.frame(
+    Alpha=a,
+    MAPE=mean(abs((test-pred)/test))*100
+  ))
+
+  lines(pred,col=round(a*10))
+}
+
+
+#Question 2: SARIMA vs Holt-Winters
+library(forecast)
+data(AirPassengers)
+
+train <- window(AirPassengers,end=c(1958,12))
+test <- window(AirPassengers,start=c(1959,1))
+
+hw <- forecast(HoltWinters(train,
+               seasonal="multiplicative"),h=24)
+
+m <- Arima(train,order=c(1,1,1),
+           seasonal=c(1,1,0))
+print(m)
+
+sf <- forecast(m,h=24)
+
+a <- accuracy(hw,test)
+b <- accuracy(sf,test)
+
+result <- data.frame(
+  Model=c("Holt-Winters","SARIMA"),
+  RMSE=c(a["Test set","RMSE"],b["Test set","RMSE"]),
+  MAE=c(a["Test set","MAE"],b["Test set","MAE"])
+)
+
+print(result)
+
+plot(test,main="Forecast Comparison")
+lines(hw$mean,col=2)
+lines(sf$mean,col=4)
+legend("topleft",c("Actual","HW","SARIMA"),
+       col=c(1,2,4),lty=1)
+
+
+
+       
+print(result)
