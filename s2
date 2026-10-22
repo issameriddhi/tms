@@ -1,0 +1,47 @@
+#Question 1: ARMA(1,1), Stationarity and Invertibility
+data(AirPassengers)
+x <- diff(log(AirPassengers))
+
+m <- arima(x, order=c(1,0,1))
+print(m)
+
+phi <- m$coef["ar1"]
+theta <- m$coef["ma1"]
+mu <- m$coef["intercept"]
+
+cat("Equation: X(t) =", mu,
+    "+", phi, "*(X(t-1) -", mu, ") + e(t) +",
+    theta, "*e(t-1)\n")
+
+ar_root <- 1/phi
+ma_root <- -1/theta
+
+cat("AR Root:", ar_root, "\n")
+cat("MA Root:", ma_root, "\n")
+
+cat("Stationary:", abs(ar_root)>1, "\n")
+cat("Invertible:", abs(ma_root)>1)
+
+
+
+#Question 2: ADF Test, Differencing and ARIMA Forecast
+library(forecast)
+library(tseries)
+
+data(AirPassengers)
+x <- AirPassengers
+
+print(adf.test(x))
+
+d <- ndiffs(x, test="adf")
+cat("Differencing Order:", d, "\n")
+
+print(adf.test(diff(x, differences=d)))
+
+m <- auto.arima(x, d=d, seasonal=FALSE)
+print(m)
+
+f <- forecast(m, h=12, level=95)
+print(f)
+plot(f)
+
