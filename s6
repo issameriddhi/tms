@@ -1,0 +1,65 @@
+#Question 1: ARIMA Parameter Significance and Simplificatio
+library(forecast)
+data(AirPassengers)
+x <- log(AirPassengers)
+
+fixed <- rep(NA,4)
+
+repeat {
+  m <- Arima(x,order=c(2,1,2),fixed=fixed,
+             transform.pars=FALSE,method="ML")
+
+  active <- which(is.na(fixed))
+  se <- sqrt(diag(m$var.coef))
+  z <- m$coef[active]/se
+  pv <- 2*pnorm(-abs(z))
+
+  print(data.frame(
+    Estimate=m$coef[active],
+    SE=se,T_Ratio=z,P_Value=pv
+  ))
+
+  if(all(pv<0.05)) break
+
+  worst <- active[which.max(pv)]
+  fixed[worst] <- 0
+}
+
+cat("Final Coefficients:\n")
+print(m$coef)
+print(m)
+
+#Question2: AIC, BIC, Durbin-Watson and Cumulative Periodogram
+library(forecast)
+library(lmtest)
+
+data(AirPassengers)
+x <- log(AirPassengers)
+results <- data.frame()
+
+for(p in 0:3){
+  for(q in 0:3){
+    m <- try(Arima(x,order=c(p,1,q),
+                   method="ML"),silent=TRUE)
+
+    if(!inherits(m,"try-error") && is.finite(AIC(m))){
+      results <- rbind(results,
+                       data.frame(p=p,q=q,
+                                  AIC=AIC(m),BIC=BIC(m)))
+    }
+  }
+}
+
+results$Penalty <- results$BIC-results$AIC
+print(results)
+
+best <- results[which.min(results$BIC),]
+print(best)
+
+m <- Arima(x,order=c(best$p,1,best$q),method="ML")
+res <- na.omit(residuals(m))
+
+print(dwtest(as.numeric(res) ~ 1,
+             alternative="two.sided"))
+
+cpgram(res,main="Cumulative Periodogram")
